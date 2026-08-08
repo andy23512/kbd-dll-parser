@@ -60,3 +60,30 @@ jobs:
           name: kbdreverse
           path: vendor/winkbdlayouts/x64/Release/kbdreverse.exe
           if-no-files-found: error
+
+  reverse-breton:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: kbdreverse
+
+      # Third-party Breton (KAD C'hwerty) Windows keyboard driver, not on
+      # kbdlayout.info. See https://drouizig.org/en/tools-and-resources/chwerty-keyboard/
+      - name: Download and extract Breton.dll (amd64, matches kbdreverse x64 build)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://drouizig.org/wp-content/uploads/2023/02/breton.zip" -OutFile breton.zip
+          Expand-Archive -Path breton.zip -DestinationPath breton
+
+      - name: Run kbdreverse against Breton.dll
+        shell: cmd
+        run: |
+          kbdreverse.exe breton\breton\amd64\Breton.dll -o kbdbre.c
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kbdbre-source
+          path: kbdbre.c
+          if-no-files-found: error
