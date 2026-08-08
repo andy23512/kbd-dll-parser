@@ -1,0 +1,13 @@
+{
+  "name": "kbd-dll-parser",
+  "packageManager": "yarn@4.9.2",
+  "type": "module",
+  "scripts": {
+    "parse-dead-keys": "ts-node src/parse-dead-keys.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
