@@ -1,0 +1,3 @@
+[submodule "vendor/winkbdlayouts"]
+	path = vendor/winkbdlayouts
+	url = https://github.com/lelegard/winkbdlayouts.git

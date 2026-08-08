@@ -1,0 +1,62 @@
+name: Build kbdreverse
+
+# Builds tools/kbdreverse.exe from the vendored lelegard/winkbdlayouts submodule.
+# kbdreverse loads a compiled Windows keyboard-layout DLL (KbdLayerDescriptor /
+# KBDTABLES) and dumps it back to C source, including the dead_keys table.
+#
+# This needs a real Windows toolchain: the WDK ships kbd.h/dontuse.h, which
+# are not part of the plain Windows SDK or the slim Microsoft.Windows.WDK.x64
+# NuGet package (verified: that package only carries class-extension driver
+# headers, no kbd.h). So we install the full SDK + WDK via winget and add the
+# "Windows Driver Kit" component to the runner's preinstalled VS2022.
+#
+# NOTE: first-draft workflow, not yet verified end-to-end on a real runner.
+# Expect to iterate on exact winget package versions / component ids.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-kbdreverse.yml'
+      - 'vendor/winkbdlayouts'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Windows SDK + WDK (10.0.26100, matches VS2022 toolset v143)
+        shell: pwsh
+        run: |
+          winget install --id Microsoft.WindowsSDK.10.0.26100 --source winget --silent --accept-package-agreements --accept-source-agreements
+          winget install --id Microsoft.WindowsWDK.10.0.26100 --source winget --silent --accept-package-agreements --accept-source-agreements
+
+      - name: Add "Windows Driver Kit" component to the preinstalled Visual Studio
+        shell: pwsh
+        run: |
+          $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -property installationPath
+          Write-Host "VS install path: $vsPath"
+          & $vsInstaller modify --installPath "$vsPath" --add Component.Microsoft.Windows.DriverKit --quiet --norestart --wait
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build kbdreverse (Release|x64)
+        shell: cmd
+        run: |
+          msbuild vendor\winkbdlayouts\winkbdlayouts.sln /t:kbdreverse /p:Configuration=Release /p:Platform=x64 /m
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kbdreverse
+          path: vendor/winkbdlayouts/x64/Release/kbdreverse.exe
+          if-no-files-found: error
