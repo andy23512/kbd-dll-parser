@@ -3,6 +3,7 @@
   "packageManager": "yarn@4.9.2",
   "type": "module",
   "scripts": {
+    "test": "node --test src/*.test.ts",
     "parse-dead-keys": "ts-node src/parse-dead-keys.ts"
   },
   "devDependencies": {

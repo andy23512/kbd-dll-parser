@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { loadUnicodeSymbols } from './unicode-symbols.ts';
 import type { DeadKeyTable } from './model.ts';
 
@@ -83,4 +84,6 @@ function main() {
   );
 }
 
-main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
+}
