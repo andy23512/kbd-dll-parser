@@ -7,6 +7,14 @@ const CHAR_LITERAL = /^L?'(.*)'$/;
 const HEX_LITERAL = /^0x[0-9A-Fa-f]+$/;
 const DEC_LITERAL = /^[0-9]+$/;
 
+// One DEADTRANS() argument: a quoted char literal (which may itself be a comma,
+// e.g. L','), or anything up to the next comma.
+const ARG = String.raw`(L?'(?:\\.|[^'\\])*'|[^,]+?)`;
+const DEADTRANS_CALL = new RegExp(
+  String.raw`DEADTRANS\(\s*${ARG}\s*,\s*${ARG}\s*,\s*${ARG}\s*,\s*[^,)]+?\s*\)`,
+  'g'
+);
+
 function unescapeCLiteral(raw: string): string {
   return raw
     .replace(/\\\\/g, '\\')
@@ -55,9 +63,7 @@ export function parseDeadKeys(source: string): DeadKeyTable {
   const symbols = loadUnicodeSymbols();
   const table: DeadKeyTable = {};
 
-  for (const match of body.matchAll(
-    /DEADTRANS\(\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*([^,]+?)\s*,\s*[^,)]+?\s*\)/g
-  )) {
+  for (const match of body.matchAll(DEADTRANS_CALL)) {
     const [, baseToken, accentToken, composedToken] = match;
     const base = resolveToken(baseToken as string, symbols);
     const accent = resolveToken(accentToken as string, symbols);

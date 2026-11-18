@@ -107,3 +107,65 @@ describe('parseDeadKeys: error handling', () => {
     );
   });
 });
+
+describe('parseDeadKeys: comma character literals', () => {
+  it('keeps a comma used as the accent', () => {
+    const table = parseDeadKeys(wrap(`DEADTRANS(L'a', L',', L'x', 0x0000),`));
+    assert.deepEqual(table, { ',': [{ with: 'a', text: 'x' }] });
+  });
+
+  it('keeps a comma used as the base character', () => {
+    const table = parseDeadKeys(wrap(`DEADTRANS(L',', L'´', L'x', 0x0000),`));
+    assert.deepEqual(table, { '´': [{ with: ',', text: 'x' }] });
+  });
+
+  it('keeps a comma used as the composed character', () => {
+    const table = parseDeadKeys(wrap(`DEADTRANS(L'a', L'´', L',', 0x0000),`));
+    assert.deepEqual(table, { '´': [{ with: 'a', text: ',' }] });
+  });
+
+  it('keeps entries on both sides of a comma entry', () => {
+    const table = parseDeadKeys(
+      wrap(
+        [
+          `DEADTRANS(L'r', L',', UC_LOWER_R_CEDILLA, 0x0000),`,
+          `DEADTRANS(L'a', L'´', L'á', 0x0000),`,
+          `DEADTRANS(L'u', L',', UC_LOWER_U_OGONEK, 0x0000),`,
+        ].join('\n')
+      )
+    );
+    assert.equal(table[',']?.length, 2);
+    assert.equal(table['´']?.length, 1);
+  });
+
+  it('handles an escaped quote literal next to commas', () => {
+    const table = parseDeadKeys(wrap(`DEADTRANS(L'\\'', L',', L'x', 0),`));
+    assert.deepEqual(table, { ',': [{ with: "'", text: 'x' }] });
+  });
+});
+
+// Regression against real kbdreverse output: these files contain DEADTRANS
+// rows with L',' which used to be silently dropped (96 of 111 were parsed).
+describe('parseDeadKeys: real data with comma literals', () => {
+  for (const name of ['kbdczapple', 'kbdczapplevm']) {
+    it(`${name} parses every DEADTRANS row`, async () => {
+      const { readFileSync } = await import('node:fs');
+      const source = readFileSync(
+        `vendor/winkbdlayouts/keyboards/${name}/${name}.c`,
+        'utf8'
+      );
+      const start = source.indexOf('dead_keys[]');
+      const body = source.slice(
+        source.indexOf('{', start),
+        source.indexOf('};', start)
+      );
+      const rows = body.split('\n').filter((l) => l.includes('DEADTRANS('));
+      const parsed = Object.values(parseDeadKeys(source)).reduce(
+        (n, entries) => n + entries.length,
+        0
+      );
+      assert.equal(rows.length, 111);
+      assert.equal(parsed, rows.length);
+    });
+  }
+});
