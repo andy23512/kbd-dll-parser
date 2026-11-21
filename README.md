@@ -1,5 +1,7 @@
 # kbd-dll-parser
 
+[![CI](https://github.com/andy23512/kbd-dll-parser/actions/workflows/ci.yml/badge.svg)](https://github.com/andy23512/kbd-dll-parser/actions/workflows/ci.yml)
+
 Extracts dead-key composition tables (and eventually the rest of `KBDTABLES`)
 from compiled Windows keyboard-layout DLLs — including third-party drivers
 that never made it onto [kbdlayout.info](https://kbdlayout.info), such as the
